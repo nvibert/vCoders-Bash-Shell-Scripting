@@ -1,0 +1,54 @@
+#!/bin/bash
+#Write a script called `~/searchLogs`, that will allow you to search through the logs for a pattern (you can assume it will be a BRE), that will be provided as the first argument to your script, and report back the list of files that match.
+#An optional second parameter, when set to `count`, should change the output to include also the number of lines that match the supplied pattern, after the file name
+#If no parameter is supplied, the script should print in standard error some help to describe the script usage
+#If the second parameter is `list`, on the other hand, the script should list each line that matches, prepending it with the name of the file.
+#Lastly, after all these parameters, the script should expect to receive the list of log files to scan. If no files are provided, the script should produce an error or help message ins standard error.
+
+
+checkParameterAndPrintUsage() {
+  if (( $1 == 0))
+  then
+    echo "usage: $0 pattern [list|count] file(s)" >&2
+    echo "  pattern: regular expression describing what to search for" >&2
+    echo "  list: list all lines matching pattern for each file" >&2
+    echo "  count: count the matches per file" >&2
+    echo "  file(s): list of files that need to be searched" >&2
+    #We don't need to continue, and we can use a non-zero exit code to indicate there was an error
+    exit 1
+  fi
+}
+
+checkParameterAndPrintUsage $#
+
+#We take the first parameter provided, and store it in the regex variable
+regex=${1}
+
+#We can use `shift` to get rid of the first parameter and deal witht he rest. Now $1 becomes the second parameter for us
+shift
+
+#By default we list the file names that match
+option=-l
+
+case $1 in
+count)
+   #We will add "-c" ro our search, to count
+   option=-c
+   shift
+    ;;
+list)
+   #Not strictly necessary when there's more than one file, but necessary when there's only one, so we should force the -H here
+   option=-H
+   shift
+    ;;
+esac
+
+#The last thing we need to deal with is the list of files, but thanks to the "shift"s used above, we are left with the list of files in "$@".
+#So, if $# is 0, it means we have no files, and we can use checkParameterAndPrintUsage again
+
+checkParameterAndPrintUsage $#
+
+#Lastly, we can use grep
+grep $option "$regex" "$@"
+
+

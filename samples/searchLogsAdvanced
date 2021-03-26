@@ -1,0 +1,83 @@
+#!/bin/bash
+#Make a copy of `~/searchLogs`, called `~/searchLogsAdvanced`, and expand the functionalities by adding 2 new commands for the 2nd option: `hourly` and `minutely`
+#If the second parameter is `hourly`, report how many lines match the supplied regular expression, aggregated for each hour. Scan across all supplied files
+#Similarly, if the second parameter is `minutely`, aggregate the lines per minute, rather than per hour.
+#You can assume that the timestamp follow iso 8601 format, which is the standard for VMware products. This means the timestamps will look like this: `2021-03-08T14:22:51.488Z`, followed by a space, followed by the log
+#When `hourly` or `minutely` is specified, if pattern starts with a "hat", the script will fail, so if that happens, remove the "hat".
+
+
+checkParameterAndPrintUsage() {
+  if (( $1 == 0))
+  then
+    echo "usage: $0 pattern [list|count|hourly|minutely] file(s)" >&2
+    echo "  pattern: regular expression describing what to search for." >&2
+    echo "  list: list all lines matching pattern for each file" >&2
+    echo "  count: count the matches per file" >&2
+    echo "  file(s): list of files that need to be searched" >&2
+    #We don't need to continue, and we can use a non-zero exit code to indicate there was an error
+    exit 1
+  fi
+}
+
+removehat() {
+  if [[ "${1:0:1}" == "^" ]]
+  then
+    echo ${1:1}
+  else
+    echo $1
+  fi
+}
+
+checkParameterAndPrintUsage $#
+
+#We take the first parameter provided, and store it in the regex variable
+regex=${1}
+
+#We can use `shift` to get rid of the first parameter and deal witht he rest. Now $1 becomes the second parameter for us
+shift
+
+#By default we list the file names that match
+option=-l
+
+#We can store the hourly regex, since the minutely is just a bit more than that
+hourlyregex='[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}'
+minutelyregex=':[0-9]\{2\}'
+#It is not strictly necessary to anchor all the way to the timezone, and it should be safe to assume the timezone is always Z, but this is a bit safer anyway
+restregex=$minutelyregex'\.[0-9]\{3\}[A-Z]\? '
+
+aggregatedregex=
+
+case $1 in
+count)
+   #We will add "-c" ro our search, to count
+   option=-c
+   shift
+    ;;
+list)
+   #Not strictly necessary when there's more than one file, but necessary when there's only one, so we should force the -H here
+   option=-H
+   shift
+    ;;
+hourly)
+   aggregatedregex="^\(${hourlyregex}\)${minutelyregex}${restregex}.*$(removehat "$regex").*$"
+   shift
+    ;;
+minutely)
+   aggregatedregex="^\(${hourlyregex}${minutelyregex}\)${restregex}.*$(removehat "$regex").*$"
+   shift
+    ;;
+esac
+
+#The last thing we need to deal with is the list of files, but thanks to the "shift"s used above, we are left with the list of files in "$@".
+#So, if $# is 0, it means we have no files, and we can use checkParameterAndPrintUsage again
+
+checkParameterAndPrintUsage $#
+
+#Lastly, we can use grep or sed depending on whether there is a value in aggregatedregex
+if [[ -z "$aggregatedregex" ]]
+then
+  grep $option "$regex" "$@"
+else
+  sed -n "s/${aggregatedregex}/"'\1/p' "$@" | uniq -c
+fi
+

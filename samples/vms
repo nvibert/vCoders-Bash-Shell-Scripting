@@ -1,0 +1,90 @@
+#!/bin/bash
+#Create a script called `~/vms`, which will scan the `etc/vmware/host/vmInventory.xml` file in each esx host log bundle main directory. It is safe to assume that the format of the xml file will maintain one xml tag per line, thus allowing text tools that are nto xml aware to work on it.
+#
+#Considering the `vmxCfgPath` tags, build a list of virtual machines that are registered in the host. Find the corresponding `vmx` file by converting the absoulte path in vmxCfgPath to be relative to the log bundle's bnase directory, and read each `vmx` file to gather some more details for the VM such as:
+#
+#-	display name
+#-	guestOs type
+#-	number of CPUs
+#-	amount of memory
+#-	number of disks
+#-	number of NICs
+#
+#Present in output a report, for each VM, with its display name, followed by the (absolute) `vmx` path, and then the details obtained from the vmx
+#
+#The script needs to assume to be running from inside a log bundle's base directory, and error out if `etc/vmware/hostd/vmInventory.xml` can't be found int he current directory.
+#
+#The script should also accept as parameters a list of paths to log bundle base directories, and in that case, for each log bundle directory, it should print its name, and then work from that directory, and then move to the next.
+
+
+#First check if we have parameters, and if we don't we inject $PWD
+declare -a BaseDirs
+
+if (( $# == 0 ))
+then
+  #We work locally
+  BaseDirs=( "$PWD" )
+else
+  #We use what was supplied
+  BaseDirs=( "$@" )
+fi
+
+
+#Then we loop through all the BaseDirs
+for basedir in "${BaseDirs[@]}"
+do
+
+  if test -r ${basedir}/etc/vmware/hostd/vmInventory.xml
+  then
+    echo "List of VMs found in log bundle $basedir"
+
+    #We need to avoid a subshell here to be able to count the VMs. We could do an additional grep to count and avoid the process substitution, but it's not chear which one is more efficient.
+    while read vmxfile
+    do
+      #We will use an associative array to load the whoile vmx file, so adding more fields is simple
+      unset VMX
+      declare -A VMX
+  
+      while read key value
+      do
+        VMX[$key]=$value
+      done < <(sed -n 's/^\([^ ]\+\) = \(.\+\)$/\1\t\2/p'  "${basedir}$vmxfile")
+  
+      #For counting we might grep -c, but this shows off some more cool features of bash!
+      #Reset all counters
+      NICs=0
+      DISKs=0
+      for k in ${!VMX[@]}
+      do 
+        #For nics, we just count the ethernetX.virtualDev
+        [[ $k =~ ^ethernet[0-9]+\.virtualDev   ]] && (( NICs++  ))
+        #for the disks, we neet to count the scsiX:Y.present that are "true"
+        [[ $k =~ ^scsi[0-9]+:[0-9]+\.present  ]] && [[ ${VMX[$k]} =~ [tT](rue|RUE)  ]] && (( DISKs++  ))
+     done
+     
+     #Time to print the data
+     echo "  VM ${VMX[displayName]} ($vmxfile):"
+     for k in numvcpus memSize guestOS 
+     do
+       #We might have double-quotes somewhere, so we use echo -n and sed to remove them if they are there.
+       echo -n "  $k:"
+       echo ${VMX[$k]} | sed 's/^"\(.\+\)"/\1/'
+     done
+     echo "    NICs::${NICs}"
+     echo "    DISKs:${DISKs}"
+  
+     #Leave some space till the next VM:
+     echo
+
+    done < <(sed -n 's/^.*<vmxCfgPath>\([^<]\+\)<\/vmxCfgPath\>.*$/\1/p' ${basedir}/etc/vmware/hostd/vmInventory.xml)
+
+    #Leave some space till the next bundle
+    echo
+
+  else
+    echo "${basedir} does not appear to contain a valid ESX log bundle" >&2
+  fi
+
+done
+
+
