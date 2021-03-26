@@ -2,6 +2,8 @@
 
 A Bash Shell Scripting Tutorial - one of the modules of the __vCoders__ Initiative.
 
+Originally written by Cormac Hogan and Emiliano Turra.
+
 ## Introduction ##
 
 Shell scripting can be very simple, because you can just take inspiration from the history of commands you used to solve a problem, and glue them together in a script.
