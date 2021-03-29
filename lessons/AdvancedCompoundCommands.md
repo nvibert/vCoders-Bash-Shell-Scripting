@@ -6,7 +6,7 @@ Some of the forms of compound commands are more complicated, but the main ones a
 
 ## if ##
 
-We have already seen the `if` contruct. It is very common, and will probably be used in most scripts. The structure, as we have previously seen, is as follows:
+We have already seen the `if` construct. It is very common, and will probably be used in most scripts. The structure, as we have previously seen, is as follows:
 
 ```shell
 if conditional-command; then command fi
