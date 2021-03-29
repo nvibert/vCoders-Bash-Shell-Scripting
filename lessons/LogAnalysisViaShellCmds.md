@@ -4,13 +4,13 @@ In this lesson, you are going to be mostly on your own. We have a log dump taken
 
 ## Log Analysis using Shell Commands ##
 
-The plan is to use what you've learnt so far, and try to apply it to a *somewhat* realistic use case, such as looking at a log bundle. The ieda is to try and do the following:
+The plan is to use what you've learnt so far, and try to apply it to a *somewhat* realistic use case, such as looking at a log bundle. The idea is to try and do the following:
 
 1. Reassemble any fragment in the log bundle
 1. Find all log files, and concatenate them together in order after unzipping them to get a single file to work with
 1. Search through the resulting concatenated files for some error.
 1. Improve the search script with more advanced functionalities
-1. Create a script to generate areport of the inventory of the server (VMs)
+1. Create a script to generate a report of the inventory of the server (VMs)
 
 ### Step 1 - Get the logs ready ###
 
@@ -68,7 +68,7 @@ done
 […]
 ```
 
-The script is starting to take form, but wait! The output is wrong: the 2nd file name is just the same as the first! Can you spot what os wrong ?
+The script is starting to take form, but wait! The output is wrong: the 2nd file name is just the same as the first! Can you spot what is wrong ?
 
 We actually used "Remove matching prefix pattern" (`##`) instead of "Remove matching suffix pattern" (`%%`)! It's hard to remember which is which. The trick I use is this mnemonic: the `#` is typically at the beginning of a line because it's the beginning of a comment, and the `%` is usually after a number to mean percentage. If you find a better mnemonic, let me know. Anyway, let's replace the `##` with `%%`, and try again:
 
@@ -157,7 +157,7 @@ This because we've already seen how `ls` sorts its output alphabetically, and th
 % ls -lh "$endfilename"
 ```
 
-So far we are doing great, all we have left to do is clean-up of the old fragments, which are not needed anymore. It might be a good idea to delete the files only if the re-assembly was successful, so in this case, we could use `&&`:
+So far we are doing great, all we have left to do is clean-up of the old fragments, which are not needed any more. It might be a good idea to delete the files only if the re-assembly was successful, so in this case, we could use `&&`:
 
 ```shell
 % firstfrag=./esx-esxi-dell-m.rainpole.com-2021-03-08--14.49-17885597/commands/vsi_traverse_-s.txt.FRAG-00000
@@ -199,11 +199,11 @@ The last part of the log bundle preparation is to look for all the logs in the `
 
 What you should do now is create a new script, let's call it `~/prepareAllLogs.sh`, which does the following:
 
-1. Assume it is being run from the base directory fo the ESXi host's log bundle (e.g. the one whose name is of the form `esx-<hostname>-<timestamp>-<pid>`).
+1. Assume it is being run from the base directory of the ESXi host's log bundle (e.g. the one whose name is of the form `esx-<hostname>-<timestamp>-<pid>`).
 1. Scan all the files in `var/log` and `var/run/log`, and for each file, identify the "resulting file name" (e.g. for `filename.log`, `filename.1.gz`, etc. We could call the resulting file name something like `filename.log.all`).
-1. Concatenate all the logs that are related to the "resulting file name" in order, starting fromt the oldest to the newest (so from `filename.100.gz` through to `filename.1.gz` and then `filename.log`).
+1. Concatenate all the logs that are related to the "resulting file name" in order, starting from the oldest to the newest (so from `filename.100.gz` through to `filename.1.gz` and then `filename.log`).
 1. Before concatenating the files, you may need to unzip them. Use the `gunzip` or `zcat` tools if necessary.
-1. The end result should be that for each group of related log files there will be a "resulting file name", in the same directory, with all the content, in chronological order.
+1. The end result should be that, for each group of related log files, there will be a "resulting file name" in the same directory, with all the content in chronological order.
 
 ### Step 4 - Search through the logs ###
 
@@ -213,7 +213,7 @@ An optional second parameter, when set to `count`, should change the output to a
 
 If the second parameter is `list`, on the other hand, the script should list each line that matches, prepending it with the name of the file.
 
-Lastly, after the above parameters have been provided, the script should also expect to receive a list of log files to scan. If no files are provided, the script should produprintce an error or help message in standard error.
+Lastly, after the above parameters have been provided, the script should also expect to receive a list of log files to scan. If no files are provided, the script should print an error or help message in standard error.
 
 Similarly, if no parameters are supplied to the script, the script should print some help to describe the script usage, again in standard error .
 
@@ -261,7 +261,7 @@ You can find a reference implementation in [searchLogsAdvanced](../samples/searc
 
 Create a script called `vms`, which will scan the `etc/vmware/host/vmInventory.xml` file in each ESXi host log bundle main directory. It is safe to assume that the format of the xml file will maintain one XML tag per line, thus allowing text tools that are not XML aware to work on it.
 
-Using the `vmxCfgPath` tags, build a list of virtual machines that are registered in the host. Find the corresponding `vmx` file by converting the absoulte path in vmxCfgPath to be relative to the log bundle's bnase directory, and read each virtual machines corresponding `vmx` file to gather some more details for the VM, such as:
+Using the `vmxCfgPath` tags, build a list of virtual machines that are registered in the host. Find the corresponding `vmx` file by converting the absolute path in vmxCfgPath to be relative to the log bundle's bnase directory, and read each virtual machines corresponding `vmx` file to gather some more details for the VM, such as:
 
 - display name
 - guestOs type
