@@ -184,7 +184,7 @@ grep -c "^.\{3\}$" /tmp/english-words
 […]
 ```
 
-Arguably, some of these are not really words, but we want to find out palindromes, so let's move on. Let's introduce a capturing group with special parenthesis, and let's also add a back-reference to this group. This command is essentially a grep for any line with 3 characters where the first character can be any character represented by `.`, the second character can again be any character represented by `.`, but the third character must match the first character, so we use the first back reference `\1`. The back reference refers to what is inside the parenthesis, `\(` and `\)`, in this example, the first character.
+Arguably, some of these are not really words, but we want to find out palindromes, so let's move on. Let's introduce a capturing group with special parenthesis, and let's also add a back-reference to this group. This command is essentially a `grep` for any line with 3 characters where the first character can be any character represented by `.`, the second character can again be any character represented by `.`, but the third character must match the first character, so we use the first back reference `\1`. The back reference refers to what is inside the parenthesis, `\(` and `\)`, in this example, the first character.
 
 ```shell
 grep "^\(.\).\1$" /tmp/english-words
